@@ -1,0 +1,20 @@
+# Build output
+x64/
+*.lib
+*.exp
+*.pdb
+*.obj
+*.ilk
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# The built plugin is a build artifact; the .mod marker and RE_Kenshi.json
+# are shipped config and stay tracked.
+ModPackage/TotalLoot/TotalLoot.dll
+
+# Python bytecode cache
+__pycache__/
+*.pyc

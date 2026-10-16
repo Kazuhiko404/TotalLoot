@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Standalone unit tests for TotalLoot's pure logic. Same toolset as the
+     plugin (v100) so the rules compile with the compiler that ships them.
+     Build and run:
+       MSBuild tests/totalloot_tests.vcxproj -p:Configuration=Release -p:Platform=x64
+       tests/x64/Release/totalloot_tests.exe -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{7d2c4a90-5e18-4b6f-8a3d-1f9e6c0b2a47}</ProjectGuid>
+    <RootNamespace>totalloot_tests</RootNamespace>
+    <TargetName>totalloot_tests</TargetName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v100</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)x64\Release\</OutDir>
+    <IntDir>$(ProjectDir)x64\Release\obj\</IntDir>
+    <IncludePath>$(ProjectDir);$(ProjectDir)..\src;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="menu_slot_tests.cpp" />
+    <ClCompile Include="pickpocket_rules_tests.cpp" />
+    <ClCompile Include="click_gesture_tests.cpp" />
+    <ClCompile Include="loot_config_tests.cpp" />
+    <ClCompile Include="loot_walk_rules_tests.cpp" />
+    <ClCompile Include="order_watch_set_tests.cpp" />
+    <ClCompile Include="loot_dispatch_rules_tests.cpp" />
+    <ClCompile Include="auto_loot_rules_tests.cpp" />
+    <ClCompile Include="..\src\menu_slot.cpp" />
+    <ClCompile Include="..\src\pickpocket_rules.cpp" />
+    <ClCompile Include="..\src\click_gesture.cpp" />
+    <ClCompile Include="..\src\loot_config.cpp" />
+    <ClCompile Include="..\src\loot_walk_rules.cpp" />
+    <ClCompile Include="..\src\order_watch_set.cpp" />
+    <ClCompile Include="..\src\loot_dispatch_rules.cpp" />
+    <ClCompile Include="..\src\auto_loot_rules.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
