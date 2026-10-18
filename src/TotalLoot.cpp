@@ -6,6 +6,7 @@
 #include "order_watch.h"
 #include "pickpocket_session.h"
 #include "tick_dispatch.h"
+#include "better_looting/better_looting.h"
 
 namespace totalloot
 {
@@ -49,6 +50,10 @@ __declspec(dllexport) void startPlugin()
     const bool tickOk = InstallTickHook();
     LogInfo(tickOk ? "Frame tick hook installed."
                    : "Frame tick hook FAILED (pick pocket and walking loot will not run).");
+
+    const bool blOk = InstallBetterLooting();
+    LogInfo(blOk ? "BetterLooting module installed."
+                 : "BetterLooting module FAILED.");
 
     LogInfo("startPlugin complete.");
 }

@@ -1,0 +1,26 @@
+# Feature: BetterLooting merge (filters, hotkey, store all, settings window)
+Objective: copy BetterLooting (GPLv3, F:\Proyectos\Kenshi-mods\BetterLooting\Source) into TotalLoot as its own module and integrate it, adding TotalLoot's own settings to the copied settings window.
+Branch: `feat/better-looting-merge` · Delivery: single-pr · Test runner: MSBuild `tests\totalloot_tests.vcxproj` + `tests\x64\Release\totalloot_tests.exe`; scoped compile via `sh /f/Proyectos/Kenshi-mods/tools/check_files.sh --proj TotalLoot.vcxproj <file.cpp>`.
+
+## Specs
+- S1 — Copy all BetterLooting features: "ok copy all including the in game setting window". This covers category filter, MinValue, MinValuePerKg, AllowStolen, BestItemsFirst, PreferBackpack, Insert hotkey radial loot, direct-then-radial smart loot, auto-deposit protection (`Inventory::getExcessLoot`), Store all, looting player storage, and the Shift+P Win32 settings window.
+- S2 — Copy, don't rewrite: "you dont need to write anything new just copy the same in a separated module file, so you dont need ot invent anything". The code lives in its own module folder `src/better_looting/`. Allowed deviations: only what is needed to compile under TotalLoot's `v100` toolset and KenshiLib, to run from TotalLoot's `startPlugin` instead of its own export, and to read and write `TotalLoot.ini` next to `TotalLoot.dll`.
+- S3 — TotalLoot settings in the copied window: "just append the settings for whatevere we have like the animal loo". The window gets TotalLoot's keys (`[General] CheatLoot, LootRadius, ArriveDistance`; `[Looting] clear_stolen_flag, cancel_on_combat, cancel_when_nearby_ally_attacked`). These keys drive Loot, Loot all and the animal Auto loot. They are built by copying the window's existing control patterns. Saving applies them live, without restarting Kenshi.
+- S4 — Integrate: "try to copy exactly and intergrate". TotalLoot's Loot, Loot all and animal Auto loot transfers apply the copied BetterLooting item rules (category, MinValue, MinValuePerKg, AllowStolen, BestItemsFirst ordering) by calling the copied rule functions rather than reimplementing them.
+- S5 — Subagents: "use sub agents with sonnet and haiku to optimize resources".
+- S6 (consequence, stated to user) — Copying GPLv3 code makes TotalLoot GPLv3: ship `LICENSE.txt` and credit BetterLooting (author XxAtreuSSxX) in the README.
+- Existing behaviour that must not change: pick pocket, button placement, walking loot, CheatLoot, money credit, stacking, and the deploy rule that never overwrites a user-edited INI.
+
+## Tasks
+| ID | Specs | Route | Status | Commit |
+|---|---|---|---|---|
+| T1 | S1 S2 S6 | delegated (sonnet), context backstop: 14k-line port | done-uncommitted (scoped compile OK; no full link yet) | |
+| T2 | S3 | delegated (sonnet), context backstop | pending | |
+| T3 | S4 | delegated (sonnet), context backstop | pending | |
+| T4 | docs: README, QA-CHECKLIST, INI template | delegated (haiku) | pending | |
+| T5 | review + full build + deploy | opus review, parent full build | pending | |
+
+## Log
+- L1 (2026-10-18, user): "ok copy all including the in game setting window and include the settings for animal looting or other things we have in our mod, you dont need to write anything new just copy the same in a separated module file, so you dont need ot invent anything and just append the settings for whatevere we have like the animal loo so insterad of large new UI its just copy the code into our project, same applies to other, try to copy exactly and intergrate, use sub agents with sonnet and haiku to optimize resources"
+- L2: Pre-checks. No hook overlap: TotalLoot hooks `GameWorld::_NV_mainLoop_GPUSensitiveStuff`, `ContextMenu::showContextMenu/update` and `Character::addOrder`; BetterLooting hooks `Inventory::getExcessLoot`, `InventoryGUI::_NV_update` and `ForgottenGUI::showInventory*/showTraderInventory`. BetterLooting is not installed in the game. The INI sections do not collide. Toolset gap: TotalLoot uses `v100`, BetterLooting uses `v145`, so small syntax fixes are expected. Sequential route: T2 and T3 both depend on T1's module, and running two builds in one tree would clash.
+- T1 (sonnet writer): BetterLooting copied to src/better_looting/ (better_looting.cpp, BetterLootingRules.h, better_looting.h); InstallBetterLooting() called from startPlugin. Deviations: entry point, INI -> TotalLoot.ini (via existing __ImageBase DLL handle helper; LoadBetterLootingRules now reuses it), compile fixes (enum class x2 -> struct emulation, 4 lambdas `-> bool`, strtof -> BetterLootingStrtof helper over strtod). LICENSE.txt copied, INI template sections appended. check_files: src/TotalLoot.cpp ok; src/better_looting/better_looting.cpp ok. Note: BL also reads [General] LootRadius (same key as TotalLoot).

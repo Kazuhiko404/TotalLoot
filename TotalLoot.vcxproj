@@ -68,6 +68,7 @@
     <ClCompile Include="src\loot_walk_rules.cpp" />
     <ClCompile Include="src\loot_dispatch_rules.cpp" />
     <ClCompile Include="src\tick_dispatch.cpp" />
+    <ClCompile Include="src\better_looting\better_looting.cpp" />
     <ClCompile Include="src\loot_move.cpp" />
     <ClCompile Include="src\loot_threats.cpp" />
     <ClCompile Include="src\loot_walk_session.cpp" />
@@ -103,6 +104,8 @@
     <ClInclude Include="src\loot_walk_rules.h" />
     <ClInclude Include="src\loot_dispatch_rules.h" />
     <ClInclude Include="src\tick_dispatch.h" />
+    <ClInclude Include="src\better_looting\better_looting.h" />
+    <ClInclude Include="src\better_looting\BetterLootingRules.h" />
     <ClInclude Include="src\loot_move.h" />
     <ClInclude Include="src\loot_threats.h" />
     <ClInclude Include="src\loot_walk_session.h" />
