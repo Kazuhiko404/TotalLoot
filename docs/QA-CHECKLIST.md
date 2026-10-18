@@ -106,3 +106,32 @@ item only after observing it. Record failures with the log excerpt from `TotalLo
 
 ## Shutdown
 - [ ] Quit to the main menu and reload a save: buttons recreate, no duplicated widgets, no crash.
+
+## BetterLooting merge: filters (defaults)
+- [ ] With the shipped INI defaults, Loot, Loot all and Auto loot on a KO'd and on a dead body take everything, as before.
+- [ ] Set `Food=0`: Loot leaves food in the body; other categories still transfer.
+- [ ] Set `MinValue=500`: cheap items stay on the body; valuable items transfer.
+- [ ] `AllowStolen=0`: stolen body loot is skipped; `AllowStolen=1`: it is taken.
+- [ ] Money is always credited, even with `MinValue` high and every category off.
+- [ ] Walking Loot all (`CheatLoot=0`) over bodies whose items are all filtered: it moves on to the next body and does not stop early.
+- [ ] `PreferBackpack=1` fills the backpack first; `PreferBackpack=0` fills the main inventory first.
+- [ ] `BestItemsFirst=1`: the most valuable items transfer first when space runs out.
+- [ ] Animal Auto loot applies the same filters.
+
+## BetterLooting merge: hotkey and storage
+- [ ] Insert with the player's inventory open: radial loot inside `LootRadius` starts instantly.
+- [ ] Insert, with a target's inventory being opened: the target is looted first, then the radius.
+- [ ] Insert uses the player's own storage (chest) as a destination.
+- [ ] Changing `ActivationVirtualKey` in the window and saving takes effect without restart.
+- [ ] DEPOSITAR TODO (Store all) in the settings window moves items into player storage.
+- [ ] Items looted this way are not moved back out by the game's auto-deposit.
+
+## BetterLooting merge: settings window
+- [ ] Shift+P opens the window; Shift+P again closes it.
+- [ ] Layout: window is 812 px tall, no overlapping controls, footer buttons fully visible.
+- [ ] ES/EN switch in the header changes every label; after Save, `[UI] Language` matches the selected language.
+- [ ] Toggle `CheatLoot` to 1 and press Save (no restart): a Loot now runs instantly from a distance. Toggle back to 0, Save: Loot walks again.
+- [ ] `ArriveDistance`, `clear_stolen_flag`, `cancel_on_combat` and `cancel_when_nearby_ally_attacked` saved from the window take effect without restart.
+- [ ] Shared radius control: Save clamps `LootRadius` to 1-100 m.
+- [ ] DEFAULTS restores the default values and saves them immediately.
+- [ ] Pick pocket and button placement still work after the merge.

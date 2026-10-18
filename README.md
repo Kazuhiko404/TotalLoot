@@ -14,8 +14,39 @@ Plugin de RE_Kenshi (C++, MSVC x64) para Kenshi 1.0.65 que agrega botones **Loot
 - **Posición sin solapamientos**: Los botones de TotalLoot forman un bloque que se coloca en el primer hueco libre junto al menú nativo, en este orden: izquierda alineado arriba, derecha alineado arriba, izquierda bajo los botones ajenos, derecha bajo los botones ajenos y, como último recurso, izquierda ajustado a la pantalla (el bloque incluye Auto loot cuando corresponde). Se evitan los botones visibles de otros mods (TotalSparring, TotalRecruit, TotalPredator, etc.). Se mantiene el lado elegido mientras siga libre para evitar parpadeos, y se respetan los bordes izquierdo y derecho de la pantalla.
 - **Seguridad**: Todo acceso a punteros del motor y de MyGUI está protegido con SEH (`TL_TRY` / `TL_CATCH`).
 
+## BetterLooting: filtros, Insert y ventana de ajustes
+TotalLoot incluye las funciones de BetterLooting (ver [Créditos y licencia](#créditos-y-licencia)).
+
+### Filtros de objetos
+Los filtros se aplican a **Loot**, **Loot all** y al **Auto loot** de animales:
+- **Categorías**: activa o desactiva cada categoría (Armas, Armaduras, Comida, Medicina, Herramientas, Materiales, Planos, Munición, Robótica, Libros, Narcóticos, Miembros amputados y Otros). Un ítem de una categoría desactivada se queda en el cuerpo.
+- **MinValue** y **MinValuePerKg**: omiten los ítems baratos, por valor total o por kg.
+- **AllowStolen**: `0` no saquea el botín marcado como robado.
+- **BestItemsFirst**: transfiere primero los objetos de más valor.
+- **PreferBackpack**: prioriza la mochila del looteador cuando tiene sitio.
+- El **dinero nunca se filtra**.
+- Los valores por defecto no filtran nada (todas las categorías activas, `MinValue=0`, `MinValuePerKg=0.0`, `AllowStolen=1`), así que el looteo no cambia hasta que los modifiques.
+
+### Tecla Insert (looteo radial)
+- Con el inventario del jugador abierto, la tecla de `ActivationVirtualKey` (Insert por defecto) inicia un looteo radial instantáneo dentro de `LootRadius`, que también usa el almacenamiento propio del jugador como destino, como hacía BetterLooting.
+- Si la tecla se pulsa al abrir el inventario de un objetivo, primero se saquea ese objetivo y después el radio.
+
+### Depositar todo
+- El botón **DEPOSITAR TODO** de la ventana de ajustes (Shift+P) mueve los ítems al almacenamiento del jugador.
+
+### Protección del auto-depósito
+- El auto-depósito del juego no devuelve a otro lugar los ítems que acabas de saquear.
+
+### Ventana de ajustes (Shift+P)
+- **Shift+P** abre y cierra la ventana.
+- **Idioma**: español o inglés (`[UI] Language`). Los botones de la cabecera cambian entre ES y EN.
+- **Guardar** aplica los cambios al instante, sin reiniciar Kenshi.
+- **Sección TOTALLOOT**: `CheatLoot`, `ArriveDistance`, `clear_stolen_flag`, `cancel_on_combat` y `cancel_when_nearby_ally_attacked`.
+- **Radio compartido (m)**: un único control para `LootRadius`, usado por Loot all, Auto loot y el looteo radial. Al guardar se limita a 1–100 m.
+- **DEFAULTS** restaura los valores por defecto y los guarda de inmediato.
+
 ## Configuración
-`TotalLoot.ini` vive junto a `TotalLoot.dll`, en la carpeta del mod (`[Kenshi_Dir]\mods\TotalLoot\`). Se lee una sola vez al iniciar el juego: **reinicia Kenshi tras editarlo**. Las secciones y claves no distinguen mayúsculas; las líneas que empiezan por `;` o `#` son comentarios. Si el archivo falta, o una clave es desconocida o tiene un valor inválido, se usa el valor por defecto (el radio y la distancia de llegada deben ser mayores que cero; los valores no positivos vuelven al defecto).
+`TotalLoot.ini` vive junto a `TotalLoot.dll`, en la carpeta del mod (`[Kenshi_Dir]\mods\TotalLoot\`). Se lee al iniciar el juego y cada vez que guardas en la ventana de ajustes (Shift+P), que aplica los cambios sin reiniciar. Si editas el archivo a mano con el juego abierto, **reinicia Kenshi** para que se aplique. Las secciones y claves no distinguen mayúsculas; las líneas que empiezan por `;` o `#` son comentarios. Si el archivo falta, o una clave es desconocida o tiene un valor inválido, se usa el valor por defecto (el radio y la distancia de llegada deben ser mayores que cero; los valores no positivos vuelven al defecto).
 
 `package_deploy.py` **nunca sobrescribe** un `TotalLoot.ini` ya existente en la carpeta del juego: tus ediciones sobreviven a cada despliegue. Solo copia la plantilla si el archivo no existe. Para recuperar la plantilla por defecto, borra tu INI y vuelve a desplegar.
 
@@ -27,6 +58,28 @@ Plugin de RE_Kenshi (C++, MSVC x64) para Kenshi 1.0.65 que agrega botones **Loot
 | `[Looting]` | `clear_stolen_flag` | `0` | `1` = quita la marca de robado a los ítems saqueados para poder venderlos libremente. |
 | `[Looting]` | `cancel_on_combat` | `1` | `1` = el looteo caminando se detiene si el looteador entra en combate. |
 | `[Looting]` | `cancel_when_nearby_ally_attacked` | `1` | `1` = se detiene si atacan a un aliado cercano. |
+| `[Rules]` | `MinValue` | `0` | Los ítems con valor menor se omiten (`0` = no filtra). |
+| `[Rules]` | `MinValuePerKg` | `0.0` | Los ítems con valor por kg menor se omiten. |
+| `[Rules]` | `AllowStolen` | `1` | `1` = también saquea ítems robados; `0` = no saquea el botín marcado como robado. |
+| `[Categories]` | `Weapons` | `1` | `1` = saquea la categoría Armas; `0` = la deja en el cuerpo. |
+| `[Categories]` | `Armour` | `1` | Armaduras. Mismo significado que `Weapons`. |
+| `[Categories]` | `Food` | `1` | Comida. Mismo significado que `Weapons`. |
+| `[Categories]` | `Medicine` | `1` | Medicina. Mismo significado que `Weapons`. |
+| `[Categories]` | `Tools` | `1` | Herramientas. Mismo significado que `Weapons`. |
+| `[Categories]` | `Materials` | `1` | Materiales. Mismo significado que `Weapons`. |
+| `[Categories]` | `Blueprints` | `1` | Planos. Mismo significado que `Weapons`. |
+| `[Categories]` | `Ammo` | `1` | Munición. Mismo significado que `Weapons`. |
+| `[Categories]` | `Robotics` | `1` | Robótica. Mismo significado que `Weapons`. |
+| `[Categories]` | `Books` | `1` | Libros. Mismo significado que `Weapons`. |
+| `[Categories]` | `Narcotics` | `1` | Narcóticos. Mismo significado que `Weapons`. |
+| `[Categories]` | `SeveredLimbs` | `1` | Miembros amputados. Mismo significado que `Weapons`. |
+| `[Categories]` | `Other` | `1` | Otros. Mismo significado que `Weapons`. |
+| `[Behavior]` | `BestItemsFirst` | `1` | `1` = transfiere primero los ítems de más valor. |
+| `[Behavior]` | `PreferBackpack` | `1` | `1` = prioriza la mochila del looteador; `0` = llena primero el inventario principal. |
+| `[Behavior]` | `ActivationVirtualKey` | `45` | Código de tecla virtual del atajo de looteo radial (`45` = Insert). |
+| `[UI]` | `Language` | `es` | Idioma de la ventana de ajustes: `es` o `en`. |
+
+`LootRadius` en la ventana de ajustes se limita a 1–100 m al guardar; en el archivo se admite hasta 500.
 
 Los valores booleanos aceptan `1/0`, `true/false`, `yes/no` y `on/off`.
 
@@ -80,3 +133,6 @@ Manualmente, copiar la carpeta `ModPackage/TotalLoot` a la carpeta `mods` de Ken
 - `TotalLoot.dll`
 - `RE_Kenshi.json`
 - `TotalLoot.ini` (configuración, ver [Configuración](#configuración))
+
+## Créditos y licencia
+TotalLoot incluye código de **BetterLooting**, de XxAtreuSSxX, distribuido bajo GPLv3 (en `src/better_looting/`). Por eso TotalLoot se distribuye también bajo **GPLv3**; ver [`LICENSE.txt`](LICENSE.txt).
