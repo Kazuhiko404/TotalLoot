@@ -14,11 +14,11 @@ Branch: `feat/better-looting-merge` · Delivery: single-pr · Test runner: MSBui
 ## Tasks
 | ID | Specs | Route | Status | Commit |
 |---|---|---|---|---|
-| T1 | S1 S2 S6 | delegated (sonnet), context backstop: 14k-line port | done-uncommitted (scoped compile OK; no full link yet) | |
-| T2 | S3 | delegated (sonnet), context backstop | done-uncommitted (scoped compile OK; tests 8/8; not run in game) | |
-| T3 | S4 | delegated (sonnet), context backstop | done-uncommitted (scoped compile OK; not run in game) | |
-| T4 | docs: README, QA-CHECKLIST, INI template | delegated (haiku) | done-uncommitted (README and QA-CHECKLIST updated; INI keys verified by rg) | |
-| T5 | review + full build + deploy | opus review, parent full build | pending | |
+| T1 | S1 S2 S6 | delegated (sonnet), context backstop: 14k-line port | done (full build links) | 8c9da61 |
+| T2 | S3 | delegated (sonnet), context backstop | done (tests 8/8; in-game QA pending) | fff853c |
+| T3 | S4 | delegated (sonnet), context backstop | done (in-game QA pending) | 747a100 |
+| T4 | docs: README, QA-CHECKLIST, INI template | delegated (haiku) | done | f1a51b7 |
+| T5 | review + full build + deploy | opus review, parent full build | done (B1 fixed; deployed md5 4b93963a; in-game QA pending) | 2f9c7de |
 
 ## Log
 - L1 (2026-10-18, user): "ok copy all including the in game setting window and include the settings for animal looting or other things we have in our mod, you dont need to write anything new just copy the same in a separated module file, so you dont need ot invent anything and just append the settings for whatevere we have like the animal loo so insterad of large new UI its just copy the code into our project, same applies to other, try to copy exactly and intergrate, use sub agents with sonnet and haiku to optimize resources"
@@ -29,3 +29,4 @@ Branch: `feat/better-looting-merge` · Delivery: single-pr · Test runner: MSBui
 - L5 (parent, T3 review): BL load-time defaults (MinValue 500, MinValuePerKg 300, AllowStolen 0, Narcotics/SeveredLimbs 0) plus BL's rule "any dead/KO non-player body = theft source" (better_looting.cpp:2546-2557, GetBetterLootingLootableCharacterSource:506-540) would make TotalLoot's Loot take nothing from bodies on an INI without [Rules] (the installed INI is never overwritten). Fix: load defaults, struct initializer (BetterLootingRules.h:50-72) and INI template now use BL's own "Apply defaults" values (BetterLootingBspApplyDefaults: 0 / 0.0 / AllowStolen 1 / all categories on), so TotalLoot behaviour is unchanged until the user sets filters. check_files ok for better_looting.cpp and loot_transfer.cpp.
 - T4 (haiku docs writer): README gained a BetterLooting section, INI table rows for [Rules]/[Categories]/[Behavior]/[UI], corrected reload wording, and Créditos y licencia; QA-CHECKLIST gained three BetterLooting merge sections. Store all button label in code is "DEPOSITAR TODO" (not "Guardar todo"); docs use the code label.
 - L6 (parent, T5 opus review): blocker B1 fixed — the window clamped the shared `[General] LootRadius` to 1..100 on load, save and validation (better_looting.cpp:4171, 10210-10212, 10751), lowering TotalLoot's 500 m limit on any Save; now uses `totalloot::kMaxLootRadius`, tooltip and docs say 1-500 m. Advisories kept: BestItemsFirst=1 default (BL's own default, requested by S4) changes which items are kept when the looter fills up — documented in README, correcting L5's "unchanged" claim; Loot all / Auto loot still walk to bodies holding only filtered items (target selection uses HasAnyLootableItems) — UX only; Shift+P thread not stopped on stopPlugin (same as original BL). Full build OK (TotalLoot.dll links), tests 8/8 suites 0/617 failed.
+- L7 (parent): deployed with package_deploy.py; x64, ModPackage and game DLL md5 4b93963a; installed TotalLoot.ini kept (no [Rules]/[Categories]/[Behavior]/[UI] yet, so code defaults apply = no filtering). Next: user in-game QA via docs/QA-CHECKLIST.md BetterLooting sections.
