@@ -318,6 +318,51 @@ static bool CandidateAlreadyAdded(
 }
 
 
+// Best-items-first ordering, shared by the candidate enumeration and TotalLoot's transfer.
+static bool BetterLootingBestItemsFirstLess(
+    const BetterLootingCandidate& left,
+    const BetterLootingCandidate& right
+)
+{
+    if (!left.item)
+        return false;
+
+    if (!right.item)
+        return true;
+
+    const int leftValue =
+        left.item->getValueSingle(true);
+
+    const int rightValue =
+        right.item->getValueSingle(true);
+
+    const float leftWeight =
+        left.item->getItemWeightSingle();
+
+    const float rightWeight =
+        right.item->getItemWeightSingle();
+
+    const float leftRatio =
+        leftWeight > 0.001f
+            ? static_cast<float>(leftValue) /
+                leftWeight
+            : static_cast<float>(leftValue) *
+                1000000.0f;
+
+    const float rightRatio =
+        rightWeight > 0.001f
+            ? static_cast<float>(rightValue) /
+                rightWeight
+            : static_cast<float>(rightValue) *
+                1000000.0f;
+
+    if (leftRatio != rightRatio)
+        return leftRatio > rightRatio;
+
+    return leftValue > rightValue;
+}
+
+
 static std::vector<BetterLootingCandidate>
 EnumerateInventoryCandidates(
     Inventory* inventory
@@ -391,48 +436,7 @@ EnumerateInventoryCandidates(
         std::sort(
             result.begin(),
             result.end(),
-            [](
-                const BetterLootingCandidate& left,
-                const BetterLootingCandidate& right
-            ) -> bool
-            {
-                if (!left.item)
-                    return false;
-
-                if (!right.item)
-                    return true;
-
-                const int leftValue =
-                    left.item->getValueSingle(true);
-
-                const int rightValue =
-                    right.item->getValueSingle(true);
-
-                const float leftWeight =
-                    left.item->getItemWeightSingle();
-
-                const float rightWeight =
-                    right.item->getItemWeightSingle();
-
-                const float leftRatio =
-                    leftWeight > 0.001f
-                        ? static_cast<float>(leftValue) /
-                            leftWeight
-                        : static_cast<float>(leftValue) *
-                            1000000.0f;
-
-                const float rightRatio =
-                    rightWeight > 0.001f
-                        ? static_cast<float>(rightValue) /
-                            rightWeight
-                        : static_cast<float>(rightValue) *
-                            1000000.0f;
-
-                if (leftRatio != rightRatio)
-                    return leftRatio > rightRatio;
-
-                return leftValue > rightValue;
-            }
+            BetterLootingBestItemsFirstLess
         );
     }
 
@@ -3649,6 +3653,126 @@ static int GetBetterLootingEffectiveItemFunctionValue(
     return rawFunctionValue;
 }
 
+// TotalLoot entry point: runs the same per-item evaluation as
+// EvaluateTargetInventory (same inputs, same EvaluateLootDecision call) over an
+// item list collected by TotalLoot, then orders it with the shared comparator.
+// Lives in this file because the rules instance is file-static.
+bool BetterLootingSelectLootItems(
+    Inventory* sourceInventory,
+    Inventory* extraInventory,
+    const std::vector<Item*>& in,
+    std::vector<Item*>& out
+)
+{
+    if (!sourceInventory)
+        return false;
+
+    ogre_unordered_set<GameData*>::type resourceItems;
+
+    sourceInventory->getResourceItems(
+        resourceItems,
+        true
+    );
+
+    if (extraInventory)
+    {
+        extraInventory->getResourceItems(
+            resourceItems,
+            true
+        );
+    }
+
+    const bool bodyTheftSource =
+        GetBetterLootingLootableCharacterSource(
+            sourceInventory
+        ) != NULL;
+
+    std::vector<BetterLootingCandidate> accepted;
+
+    for (std::size_t i = 0; i < in.size(); ++i)
+    {
+        Item* item = in[i];
+
+        if (!item)
+            continue;
+
+        const int valueSingle =
+            item->getValueSingle(true);
+
+        const float weightSingle =
+            item->getItemWeightSingle();
+
+        const int type =
+            static_cast<int>(item->getItemType());
+
+        const bool effectiveStolen =
+            item->isStolen(true) ||
+            bodyTheftSource;
+
+        const int effectiveItemFunctionValue =
+            GetBetterLootingEffectiveItemFunctionValue(
+                item,
+                GetBetterLootingItemFunctionValue(
+                    item
+                )
+            );
+
+        GameData* itemGameData =
+            item->getGameData();
+
+        const bool isResource =
+            itemGameData &&
+            resourceItems.find(
+                itemGameData
+            ) != resourceItems.end();
+
+        const BetterLootingDecision decision =
+            EvaluateLootDecision(
+                valueSingle,
+                weightSingle,
+                effectiveStolen,
+                type,
+                effectiveItemFunctionValue,
+                isResource
+            );
+
+        if (decision != BetterLootingDecision::LOOT)
+            continue;
+
+        BetterLootingCandidate candidate;
+
+        candidate.item = item;
+        candidate.section = NULL;
+        candidate.x = 0;
+        candidate.y = 0;
+
+        accepted.push_back(candidate);
+    }
+
+    if (g_betterLootingRules.bestItemsFirst)
+    {
+        std::stable_sort(
+            accepted.begin(),
+            accepted.end(),
+            BetterLootingBestItemsFirstLess
+        );
+    }
+
+    for (std::size_t i = 0; i < accepted.size(); ++i)
+    {
+        out.push_back(accepted[i].item);
+    }
+
+    return true;
+}
+
+
+bool BetterLootingPreferBackpack()
+{
+    return g_betterLootingRules.preferBackpack;
+}
+
+
 static void EvaluateTargetInventory(
     InventoryGUI* sourceWindow,
     Inventory* inventory,
@@ -3883,7 +4007,7 @@ static bool LoadBetterLootingRules()
         GetPrivateProfileIntA(
             "Rules",
             "MinValue",
-            500,
+            0,
             configPath.c_str()
         );
 
@@ -3893,7 +4017,7 @@ static bool LoadBetterLootingRules()
     GetPrivateProfileStringA(
         "Rules",
         "MinValuePerKg",
-        "300.0",
+        "0.0",
         ratioBuffer,
         static_cast<DWORD>(
             sizeof(ratioBuffer)
@@ -3913,7 +4037,7 @@ static bool LoadBetterLootingRules()
         GetPrivateProfileIntA(
             "Rules",
             "AllowStolen",
-            0,
+            1,
             configPath.c_str()
         ) != 0;
 
@@ -3980,13 +4104,13 @@ static bool LoadBetterLootingRules()
 
     g_betterLootingRules.lootNarcotics =
         GetPrivateProfileIntA(
-            "Categories", "Narcotics", 0,
+            "Categories", "Narcotics", 1,
             configPath.c_str()
         ) != 0;
 
     g_betterLootingRules.lootSeveredLimbs =
         GetPrivateProfileIntA(
-            "Categories", "SeveredLimbs", 0,
+            "Categories", "SeveredLimbs", 1,
             configPath.c_str()
         ) != 0;
 

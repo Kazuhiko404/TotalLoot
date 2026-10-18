@@ -50,9 +50,9 @@ struct BetterLootingDecision
 static BetterLootingRules g_betterLootingRules =
 {
     20.0f,
-    500,
-    300.0f,
-    false,
+    0,
+    0.0f,
+    true,
 
     true,
     true,
@@ -63,8 +63,8 @@ static BetterLootingRules g_betterLootingRules =
     true,
     true,
     true,
-    false,
-    false,
+    true,
+    true,
     true,    true,
     true,
     45,

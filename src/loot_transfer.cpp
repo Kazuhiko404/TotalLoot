@@ -1,4 +1,5 @@
 #include "loot_transfer.h"
+#include "better_looting/better_looting.h"
 #include "log.h"
 #include "loot_config.h"
 #include "loot_inventory.h"
@@ -60,11 +61,58 @@ void ApplyStolenFlagPolicy(Item* item, Character* victim, RootObject* target, bo
     }
 }
 
+// SEH boundary around BetterLooting's rule evaluation (no objects with
+// destructors may live in a __try function, hence the separate wrapper).
+bool RunBetterLootingRules(Inventory* sourceInv, Inventory* sourceBpInv,
+                           const std::vector<Item*>& in, std::vector<Item*>& out)
+{
+    TL_TRY { return BetterLootingSelectLootItems(sourceInv, sourceBpInv, in, out); }
+    TL_CATCH { return false; }
+}
+
+// Narrows `items` to what BetterLooting's rules accept, best-first when that
+// option is on. Money is never filtered: it is always credited. Skipped items
+// stay in the source. On a fault the list is left unfiltered.
+void ApplyBetterLootingRules(Inventory* sourceInv, Inventory* sourceBpInv,
+                             std::vector<Item*>& items)
+{
+    std::vector<Item*> money;
+    std::vector<Item*> others;
+    for (size_t i = 0; i < items.size(); ++i)
+    {
+        if (items[i] == NULL) continue;
+        if (IsMoneyItem(items[i])) money.push_back(items[i]);
+        else others.push_back(items[i]);
+    }
+
+    std::vector<Item*> accepted;
+    if (!RunBetterLootingRules(sourceInv, sourceBpInv, others, accepted))
+    {
+        LogError("BetterLooting rules failed; transferring without filtering");
+        return;
+    }
+
+    LogInfo("BetterLooting rules kept " + IntToStr(static_cast<long long>(accepted.size())) +
+            " of " + IntToStr(static_cast<long long>(others.size())) + " items (+" +
+            IntToStr(static_cast<long long>(money.size())) + " money).");
+
+    money.insert(money.end(), accepted.begin(), accepted.end());
+    items.swap(money);
+}
+
 int TransferCollectedItems(Character* looter, Inventory* looterInv, Inventory* looterBpInv,
                            Character* victim, Inventory* victimInv,
                            const std::vector<Item*>& items, RootObject* target)
 {
     int itemsLooted = 0;
+    // Single destination-order switch: BetterLooting PreferBackpack.
+    Inventory* firstInv = looterBpInv;
+    Inventory* secondInv = looterInv;
+    if (!BetterLootingPreferBackpack())
+    {
+        firstInv = looterInv;
+        secondInv = looterBpInv;
+    }
     const bool clearStolen = Config().clearStolenFlag;
     LogInfo("Starting transfer of " + IntToStr(static_cast<long long>(items.size())) +
             " items. Backpack available: " + (looterBpInv != NULL ? "yes" : "no") +
@@ -115,14 +163,14 @@ int TransferCollectedItems(Character* looter, Inventory* looterInv, Inventory* l
 
         int remainingQty = originalQty;
 
-        // 3. Stack into existing items in the backpack, then the main inventory.
-        if (looterBpInv != NULL)
+        // 3. Stack into existing items, preferred inventory first.
+        if (firstInv != NULL)
         {
-            TryStackItemIntoInventory(looterBpInv, removed, remainingQty, clearStolen);
+            TryStackItemIntoInventory(firstInv, removed, remainingQty, clearStolen);
         }
-        if (remainingQty > 0 && looterInv != NULL)
+        if (remainingQty > 0 && secondInv != NULL)
         {
-            TryStackItemIntoInventory(looterInv, removed, remainingQty, clearStolen);
+            TryStackItemIntoInventory(secondInv, removed, remainingQty, clearStolen);
         }
 
         // 4. Completely absorbed by existing stacks.
@@ -133,16 +181,16 @@ int TransferCollectedItems(Character* looter, Inventory* looterInv, Inventory* l
             continue;
         }
 
-        // 5. Remainder goes into a new slot (backpack first, then main inventory).
+        // 5. Remainder goes into a new slot (preferred inventory first).
         removed->quantity = remainingQty;
         bool addedNewSlot = false;
-        if (looterBpInv != NULL)
+        if (firstInv != NULL)
         {
-            addedNewSlot = SafeAddItem(looterBpInv, removed, remainingQty);
+            addedNewSlot = SafeAddItem(firstInv, removed, remainingQty);
         }
-        if (!addedNewSlot && looterInv != NULL)
+        if (!addedNewSlot && secondInv != NULL)
         {
-            addedNewSlot = SafeAddItem(looterInv, removed, remainingQty);
+            addedNewSlot = SafeAddItem(secondInv, removed, remainingQty);
         }
 
         if (addedNewSlot)
@@ -207,6 +255,13 @@ int TransferAllLoot(Character* looter, RootObject* source, bool* outSourceHasIte
     {
         CollectLootableItems(SafeGetBackpackInventory(victim), items);
     }
+    if (items.empty()) return 0;
+
+    ApplyBetterLootingRules(victimInv, victim != NULL ? SafeGetBackpackInventory(victim) : NULL,
+                            items);
+    // A body whose items were all filtered out is visited, not "looter full":
+    // report no items left so walking Loot all / Loot area do not count it
+    // toward the consecutive-empty-bodies stop.
     if (items.empty()) return 0;
 
     const int moved = TransferCollectedItems(looter, looterInv, looterBpInv, victim, victimInv,
