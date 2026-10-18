@@ -4168,7 +4168,7 @@ static bool LoadBetterLootingRules()
         1.0f;
 
     const float BETTER_LOOTING_MAX_RADIUS_METERS =
-        100.0f;
+        totalloot::kMaxLootRadius;
 
     const float BETTER_LOOTING_DEFAULT_RADIUS_METERS =
         20.0f;
@@ -10207,9 +10207,9 @@ static void BetterLootingBspSave()
     }
 
 
-    if (radius > 100.0f)
+    if (radius > totalloot::kMaxLootRadius)
     {
-        radius = 100.0f;
+        radius = totalloot::kMaxLootRadius;
     }
 
 
@@ -10748,7 +10748,7 @@ static bool BetterLooting611HValidateInputs()
         !BetterLooting611HValidateFloatEdit(
             g_blBspEditRadius,
             1.0f,
-            100.0f
+            totalloot::kMaxLootRadius
         );
 
 
@@ -12791,8 +12791,8 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                     hwnd,
                     g_blBspEditRadius,
                     BetterLooting611LText(
-                        L"Distancia m\u00E1xima alrededor del personaje para buscar objetivos de saqueo. Rango v\u00E1lido: 1-100 m. Tambi\u00E9n lo usan Saquear todo y el Auto saqueo de animales.",
-                        L"Maximum distance around the character used to search for loot targets. Valid range: 1-100 m. Shared with Loot all and animal Auto loot."
+                        L"Distancia m\u00E1xima alrededor del personaje para buscar objetivos de saqueo. Rango v\u00E1lido: 1-500 m. Tambi\u00E9n lo usan Saquear todo y el Auto saqueo de animales.",
+                        L"Maximum distance around the character used to search for loot targets. Valid range: 1-500 m. Shared with Loot all and animal Auto loot."
                     )
                 );
 

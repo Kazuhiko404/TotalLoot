@@ -132,6 +132,6 @@ item only after observing it. Record failures with the log excerpt from `TotalLo
 - [ ] ES/EN switch in the header changes every label; after Save, `[UI] Language` matches the selected language.
 - [ ] Toggle `CheatLoot` to 1 and press Save (no restart): a Loot now runs instantly from a distance. Toggle back to 0, Save: Loot walks again.
 - [ ] `ArriveDistance`, `clear_stolen_flag`, `cancel_on_combat` and `cancel_when_nearby_ally_attacked` saved from the window take effect without restart.
-- [ ] Shared radius control: Save clamps `LootRadius` to 1-100 m.
+- [ ] Shared radius control: Save clamps `LootRadius` to 1-500 m.
 - [ ] DEFAULTS restores the default values and saves them immediately.
 - [ ] Pick pocket and button placement still work after the merge.

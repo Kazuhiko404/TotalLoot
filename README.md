@@ -21,11 +21,11 @@ TotalLoot incluye las funciones de BetterLooting (ver [Créditos y licencia](#cr
 Los filtros se aplican a **Loot**, **Loot all** y al **Auto loot** de animales:
 - **Categorías**: activa o desactiva cada categoría (Armas, Armaduras, Comida, Medicina, Herramientas, Materiales, Planos, Munición, Robótica, Libros, Narcóticos, Miembros amputados y Otros). Un ítem de una categoría desactivada se queda en el cuerpo.
 - **MinValue** y **MinValuePerKg**: omiten los ítems baratos, por valor total o por kg.
-- **AllowStolen**: `0` no saquea el botín marcado como robado.
+- **AllowStolen**: `0` no saquea ítems robados. Como en BetterLooting, todo lo que se saca de un cuerpo (muerto o inconsciente) cuenta como robo, así que con `0` Loot solo toma el dinero de los cuerpos.
 - **BestItemsFirst**: transfiere primero los objetos de más valor.
 - **PreferBackpack**: prioriza la mochila del looteador cuando tiene sitio.
 - El **dinero nunca se filtra**.
-- Los valores por defecto no filtran nada (todas las categorías activas, `MinValue=0`, `MinValuePerKg=0.0`, `AllowStolen=1`), así que el looteo no cambia hasta que los modifiques.
+- Los valores por defecto no filtran nada (todas las categorías activas, `MinValue=0`, `MinValuePerKg=0.0`, `AllowStolen=1`), así que se saquea todo como antes. `BestItemsFirst=1` (por defecto) sí cambia el orden: si el inventario se llena, se quedan primero los ítems de más valor por kg.
 
 ### Tecla Insert (looteo radial)
 - Con el inventario del jugador abierto, la tecla de `ActivationVirtualKey` (Insert por defecto) inicia un looteo radial instantáneo dentro de `LootRadius`, que también usa el almacenamiento propio del jugador como destino, como hacía BetterLooting.
@@ -42,7 +42,7 @@ Los filtros se aplican a **Loot**, **Loot all** y al **Auto loot** de animales:
 - **Idioma**: español o inglés (`[UI] Language`). Los botones de la cabecera cambian entre ES y EN.
 - **Guardar** aplica los cambios al instante, sin reiniciar Kenshi.
 - **Sección TOTALLOOT**: `CheatLoot`, `ArriveDistance`, `clear_stolen_flag`, `cancel_on_combat` y `cancel_when_nearby_ally_attacked`.
-- **Radio compartido (m)**: un único control para `LootRadius`, usado por Loot all, Auto loot y el looteo radial. Al guardar se limita a 1–100 m.
+- **Radio compartido (m)**: un único control para `LootRadius`, usado por Loot all, Auto loot y el looteo radial. Al guardar se limita a 1–500 m (el mismo límite que el archivo).
 - **DEFAULTS** restaura los valores por defecto y los guarda de inmediato.
 
 ## Configuración
@@ -79,7 +79,7 @@ Los filtros se aplican a **Loot**, **Loot all** y al **Auto loot** de animales:
 | `[Behavior]` | `ActivationVirtualKey` | `45` | Código de tecla virtual del atajo de looteo radial (`45` = Insert). |
 | `[UI]` | `Language` | `es` | Idioma de la ventana de ajustes: `es` o `en`. |
 
-`LootRadius` en la ventana de ajustes se limita a 1–100 m al guardar; en el archivo se admite hasta 500.
+`LootRadius` admite 1–500 m tanto en la ventana como en el archivo.
 
 Los valores booleanos aceptan `1/0`, `true/false`, `yes/no` y `on/off`.
 
