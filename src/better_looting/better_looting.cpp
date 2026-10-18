@@ -31,6 +31,7 @@
 
 #include "BetterLootingRules.h"
 #include "better_looting.h"
+#include "../loot_config.h"
 
 // v100 CRT has no strtof.
 static inline float BetterLootingStrtof(const char* text, char** end)
@@ -7930,6 +7931,13 @@ static HWND g_blBspCheckAllowStolen = NULL;
 static HWND g_blBspCheckBestItemsFirst = NULL;
 static HWND g_blBspCheckPreferBackpack = NULL;
 
+// TotalLoot settings (Loot, Loot all, animal Auto loot), appended to this window.
+static HWND g_blBspCheckCheatLoot = NULL;
+static HWND g_blBspCheckClearStolenFlag = NULL;
+static HWND g_blBspCheckCancelOnCombat = NULL;
+static HWND g_blBspCheckCancelWhenAllyAttacked = NULL;
+static HWND g_blBspEditArriveDistance = NULL;
+
 
 static void BetterLootingBspSetControlFont(
     HWND hwnd,
@@ -8054,6 +8062,7 @@ static void BetterLootingBspCreateGuiResources()
 
 static HWND g_bl611SectionSettings = NULL;
 static HWND g_bl611SectionBehavior = NULL;
+static HWND g_bl611SectionTotalLoot = NULL;
 static HWND g_bl611SectionCategories = NULL;
 static HWND g_bl611NProfileLabel = NULL;
 
@@ -8097,6 +8106,7 @@ static int g_bl611KActivePresetId = 0;
 static bool g_bl611HRadiusInvalid = false;
 static bool g_bl611HMinValueInvalid = false;
 static bool g_bl611HMinValuePerKgInvalid = false;
+static bool g_bl611HArriveDistanceInvalid = false;
 
 static const UINT_PTR BL_UI_611H_TIMER_STATUS = 6118;
 static WNDPROC g_bl611BOriginalCheckProc = NULL;
@@ -8251,12 +8261,21 @@ static void BetterLooting611PaintBackground(
     };
 
 
-    RECT footer =
+    RECT totalLoot =
     {
         24,
         532,
         956,
-        612
+        692
+    };
+
+
+    RECT footer =
+    {
+        24,
+        704,
+        956,
+        784
     };
 
 
@@ -8284,6 +8303,13 @@ static void BetterLooting611PaintBackground(
     FillRect(
         hdc,
         &categories,
+        g_blBspBrushPanel
+    );
+
+
+    FillRect(
+        hdc,
+        &totalLoot,
         g_blBspBrushPanel
     );
 
@@ -8342,6 +8368,17 @@ static void BetterLooting611PaintBackground(
     BetterLooting611FrameRect(
         hdc,
         categories,
+        RGB(
+            80,
+            78,
+            67
+        )
+    );
+
+
+    BetterLooting611FrameRect(
+        hdc,
+        totalLoot,
         RGB(
             80,
             78,
@@ -9791,6 +9828,61 @@ static bool BetterLootingBspGetCheck(
 }
 
 
+static void BetterLootingBspTotalLootSync()
+{
+    const totalloot::LootConfig totalLoot =
+        totalloot::ReadConfigFile();
+
+
+    char value[64] = {};
+
+
+    sprintf_s(
+        value,
+        "%.2f",
+        totalLoot.arriveDistance
+    );
+
+    SetWindowTextA(
+        g_blBspEditArriveDistance,
+        value
+    );
+
+
+    BetterLootingBspSetCheck(g_blBspCheckCheatLoot, totalLoot.cheatLoot);
+    BetterLootingBspSetCheck(g_blBspCheckClearStolenFlag, totalLoot.clearStolenFlag);
+    BetterLootingBspSetCheck(g_blBspCheckCancelOnCombat, totalLoot.cancelOnCombat);
+    BetterLootingBspSetCheck(g_blBspCheckCancelWhenAllyAttacked, totalLoot.cancelWhenNearbyAllyAttacked);
+}
+
+
+static void BetterLootingBspTotalLootSetDefaults()
+{
+    const totalloot::LootConfig defaults;
+
+
+    char value[64] = {};
+
+
+    sprintf_s(
+        value,
+        "%.2f",
+        defaults.arriveDistance
+    );
+
+    SetWindowTextA(
+        g_blBspEditArriveDistance,
+        value
+    );
+
+
+    BetterLootingBspSetCheck(g_blBspCheckCheatLoot, defaults.cheatLoot);
+    BetterLootingBspSetCheck(g_blBspCheckClearStolenFlag, defaults.clearStolenFlag);
+    BetterLootingBspSetCheck(g_blBspCheckCancelOnCombat, defaults.cancelOnCombat);
+    BetterLootingBspSetCheck(g_blBspCheckCancelWhenAllyAttacked, defaults.cancelWhenNearbyAllyAttacked);
+}
+
+
 static void BetterLootingBspSyncFromRules()
 {
     char value[64] = {};
@@ -9863,6 +9955,8 @@ static void BetterLootingBspSyncFromRules()
     BetterLootingBspSetCheck(g_blBspCheckBestItemsFirst, g_betterLootingRules.bestItemsFirst);
     BetterLootingBspSetCheck(g_blBspCheckPreferBackpack, g_betterLootingRules.preferBackpack);
 
+    BetterLootingBspTotalLootSync();
+
 
     if (g_blBspComboLanguage)
     {
@@ -9889,6 +9983,68 @@ static void BetterLootingBspWriteBool(
         value ? "1" : "0",
         iniPath.c_str()
     );
+}
+
+
+static void BetterLootingBspSaveTotalLoot(
+    const std::string& iniPath
+)
+{
+    char textBuffer[64] = {};
+    char* endPointer = NULL;
+
+
+    GetWindowTextA(
+        g_blBspEditArriveDistance,
+        textBuffer,
+        sizeof(textBuffer)
+    );
+
+
+    float arriveDistance =
+        BetterLootingStrtof(
+            textBuffer,
+            &endPointer
+        );
+
+
+    if (
+        endPointer == textBuffer ||
+        arriveDistance != arriveDistance ||
+        arriveDistance <= 0.0f
+    )
+    {
+        arriveDistance = totalloot::kDefaultArriveDistance;
+    }
+
+
+    if (arriveDistance > totalloot::kMaxArriveDistance)
+    {
+        arriveDistance = totalloot::kMaxArriveDistance;
+    }
+
+
+    char valueBuffer[64] = {};
+
+
+    sprintf_s(
+        valueBuffer,
+        "%.2f",
+        arriveDistance
+    );
+
+    WritePrivateProfileStringA(
+        "General",
+        "ArriveDistance",
+        valueBuffer,
+        iniPath.c_str()
+    );
+
+
+    BetterLootingBspWriteBool(iniPath, "General", "CheatLoot", BetterLootingBspGetCheck(g_blBspCheckCheatLoot));
+    BetterLootingBspWriteBool(iniPath, "Looting", "clear_stolen_flag", BetterLootingBspGetCheck(g_blBspCheckClearStolenFlag));
+    BetterLootingBspWriteBool(iniPath, "Looting", "cancel_on_combat", BetterLootingBspGetCheck(g_blBspCheckCancelOnCombat));
+    BetterLootingBspWriteBool(iniPath, "Looting", "cancel_when_nearby_ally_attacked", BetterLootingBspGetCheck(g_blBspCheckCancelWhenAllyAttacked));
 }
 
 
@@ -10164,6 +10320,12 @@ static void BetterLootingBspSave()
     );
 
 
+    BetterLootingBspSaveTotalLoot(iniPath);
+
+    // The window thread only asks; the game thread reloads on its next tick.
+    totalloot::RequestConfigReload();
+
+
     BetterLootingBspSyncFromRules();
 
 
@@ -10199,6 +10361,7 @@ static void BetterLootingBspApplyDefaults()
     g_betterLootingRules.activationVirtualKey = VK_INSERT;
 
     BetterLootingBspSyncFromRules();
+    BetterLootingBspTotalLootSetDefaults();
     BetterLootingBspSave();
 
     ErrorLog(
@@ -10481,6 +10644,14 @@ static bool BetterLooting611HValidateInputs()
         );
 
 
+    g_bl611HArriveDistanceInvalid =
+        !BetterLooting611HValidateFloatEdit(
+            g_blBspEditArriveDistance,
+            0.01f,
+            totalloot::kMaxArriveDistance
+        );
+
+
     BetterLooting611HRefreshEdit(
         g_blBspEditRadius
     );
@@ -10496,10 +10667,16 @@ static bool BetterLooting611HValidateInputs()
     );
 
 
+    BetterLooting611HRefreshEdit(
+        g_blBspEditArriveDistance
+    );
+
+
     return
         !g_bl611HRadiusInvalid &&
         !g_bl611HMinValueInvalid &&
-        !g_bl611HMinValuePerKgInvalid;
+        !g_bl611HMinValuePerKgInvalid &&
+        !g_bl611HArriveDistanceInvalid;
 }
 
 
@@ -11368,7 +11545,11 @@ static bool BetterLooting611KIsTrackedCheck(
         control == g_blBspCheckOther ||
         control == g_blBspCheckAllowStolen ||
         control == g_blBspCheckBestItemsFirst ||
-        control == g_blBspCheckPreferBackpack;
+        control == g_blBspCheckPreferBackpack ||
+        control == g_blBspCheckCheatLoot ||
+        control == g_blBspCheckClearStolenFlag ||
+        control == g_blBspCheckCancelOnCombat ||
+        control == g_blBspCheckCancelWhenAllyAttacked;
 }
 
 static LRESULT CALLBACK BetterLooting611BCheckProc(
@@ -11783,7 +11964,7 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                 );
 
 
-            BetterLootingBspCreateLabel(hwnd, BetterLootingBspText("Radio de saqueo (m)", "Loot radius (m)"), 44, 132, 208, 30);
+            BetterLootingBspCreateLabel(hwnd, BetterLootingBspText("Radio compartido (m)", "Shared radius (m)"), 44, 132, 208, 30);
             g_blBspEditRadius = BetterLootingBspCreateEdit(hwnd, 274, 126, 186, 34);
 
             BetterLootingBspCreateLabel(hwnd, BetterLootingBspText("Valor minimo", "Minimum value"), 44, 182, 208, 30);
@@ -12158,6 +12339,18 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                 );
 
 
+            g_bl611SectionTotalLoot = BetterLooting611CreateSectionLabel(hwnd, BetterLootingBspText("TOTALLOOT", "TOTALLOOT"), 44, 540, 396, 28);
+
+            g_blBspCheckCheatLoot = BetterLootingBspCreateCheck(hwnd, BetterLootingBspText("Saqueo instantaneo (trampa)", "Instant loot (cheat)"), 44, 578, 396, 30);
+            BetterLootingBspCreateLabel(hwnd, BetterLootingBspText("Distancia de llegada (m)", "Arrive distance (m)"), 512, 582, 230, 30);
+            g_blBspEditArriveDistance = BetterLootingBspCreateEdit(hwnd, 750, 576, 186, 34);
+
+            g_blBspCheckClearStolenFlag = BetterLootingBspCreateCheck(hwnd, BetterLootingBspText("Quitar marca de robado", "Clear stolen flag"), 44, 618, 396, 30);
+            g_blBspCheckCancelOnCombat = BetterLootingBspCreateCheck(hwnd, BetterLootingBspText("Cancelar al entrar en combate", "Cancel on combat"), 512, 618, 424, 30);
+
+            g_blBspCheckCancelWhenAllyAttacked = BetterLootingBspCreateCheck(hwnd, BetterLootingBspText("Cancelar si atacan a un aliado cercano", "Cancel when a nearby ally is attacked"), 44, 658, 892, 30);
+
+
             // Language label removed: language buttons live in the header.
 
             g_blBspComboLanguage =
@@ -12279,7 +12472,7 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                         WS_TABSTOP |
                         BS_OWNERDRAW,
                     54,
-                    566,
+                    738,
                     198,
                     40,
                     hwnd,
@@ -12314,7 +12507,7 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                         WS_TABSTOP |
                         BS_OWNERDRAW,
                     270,
-                    566,
+                    738,
                     198,
                     40,
                     hwnd,
@@ -12349,7 +12542,7 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                         WS_TABSTOP |
                         BS_OWNERDRAW,
                     486,
-                    566,
+                    738,
                     226,
                     40,
                     hwnd,
@@ -12384,7 +12577,7 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                         WS_TABSTOP |
                         BS_OWNERDRAW,
                     730,
-                    566,
+                    738,
                     194,
                     40,
                     hwnd,
@@ -12415,7 +12608,7 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                         WS_VISIBLE |
                         SS_CENTER,
                     54,
-                    536,
+                    708,
                     870,
                     18,
                     hwnd,
@@ -12474,8 +12667,8 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                     hwnd,
                     g_blBspEditRadius,
                     BetterLooting611LText(
-                        L"Distancia m\u00E1xima alrededor del personaje para buscar objetivos de saqueo. Rango v\u00E1lido: 1-100 m.",
-                        L"Maximum distance around the character used to search for loot targets. Valid range: 1-100 m."
+                        L"Distancia m\u00E1xima alrededor del personaje para buscar objetivos de saqueo. Rango v\u00E1lido: 1-100 m. Tambi\u00E9n lo usan Saquear todo y el Auto saqueo de animales.",
+                        L"Maximum distance around the character used to search for loot targets. Valid range: 1-100 m. Shared with Loot all and animal Auto loot."
                     )
                 );
 
@@ -12536,6 +12729,56 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                     BetterLooting611LText(
                         L"Define el orden de llenado: activado = mochila → inventario; desactivado = inventario → mochila. Siempre se intentan ambos.",
                         L"Sets the fill order: enabled = backpack → main inventory; disabled = main inventory → backpack. Both are always attempted."
+                    )
+                );
+
+
+                BetterLooting611IAddTooltip(
+                    hwnd,
+                    g_blBspCheckCheatLoot,
+                    BetterLooting611LText(
+                        L"Saquea al instante y a distancia, sin caminar hasta el objetivo.",
+                        L"Loots instantly from a distance, without walking to the target."
+                    )
+                );
+
+
+                BetterLooting611IAddTooltip(
+                    hwnd,
+                    g_blBspEditArriveDistance,
+                    BetterLooting611LText(
+                        L"Distancia a la que el saqueador cuenta como llegado. Rango válido: mayor que 0 hasta 100 m.",
+                        L"Distance at which the looter counts as arrived. Valid range: above 0 up to 100 m."
+                    )
+                );
+
+
+                BetterLooting611IAddTooltip(
+                    hwnd,
+                    g_blBspCheckClearStolenFlag,
+                    BetterLooting611LText(
+                        L"Quita la marca de robado de los objetos saqueados.",
+                        L"Strips the stolen flag from looted items."
+                    )
+                );
+
+
+                BetterLooting611IAddTooltip(
+                    hwnd,
+                    g_blBspCheckCancelOnCombat,
+                    BetterLooting611LText(
+                        L"Cancela un saqueo a pie cuando empieza un combate.",
+                        L"Cancels a walking loot when combat starts."
+                    )
+                );
+
+
+                BetterLooting611IAddTooltip(
+                    hwnd,
+                    g_blBspCheckCancelWhenAllyAttacked,
+                    BetterLooting611LText(
+                        L"Cancela un saqueo a pie cuando atacan a un aliado cercano.",
+                        L"Cancels a walking loot when a nearby ally is attacked."
                     )
                 );
 
@@ -12776,6 +13019,7 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
             const bool isSection =
                 control == g_bl611SectionSettings ||
                 control == g_bl611SectionBehavior ||
+                control == g_bl611SectionTotalLoot ||
                 control == g_bl611SectionCategories ||
                 control == g_bl611NProfileLabel;
 
@@ -12873,6 +13117,10 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                 (
                     control == g_blBspEditMinValuePerKg &&
                     g_bl611HMinValuePerKgInvalid
+                ) ||
+                (
+                    control == g_blBspEditArriveDistance &&
+                    g_bl611HArriveDistanceInvalid
                 );
 
 
@@ -13136,7 +13384,8 @@ static LRESULT CALLBACK BetterLootingBspWndProc(
                 (
                     commandSource == g_blBspEditRadius ||
                     commandSource == g_blBspEditMinValue ||
-                    commandSource == g_blBspEditMinValuePerKg
+                    commandSource == g_blBspEditMinValuePerKg ||
+                    commandSource == g_blBspEditArriveDistance
                 )
             )
             {
@@ -13721,6 +13970,10 @@ KillTimer(
                 false;
 
 
+            g_bl611HArriveDistanceInvalid =
+                false;
+
+
 g_blBspWindow =
                 NULL;
 
@@ -13802,7 +14055,7 @@ static void CreateBetterLootingBspWindow()
 
 
     const int height =
-        640;
+        812;
 
 
     int x =

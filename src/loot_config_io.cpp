@@ -1,6 +1,7 @@
 #include "common.h"
 #include "loot_config.h"
 #include "log.h"
+#include "tick_dispatch.h"
 
 #include <fstream>
 #include <sstream>
@@ -14,6 +15,16 @@ namespace
 const char* const kIniFileName = "TotalLoot.ini";
 
 LootConfig g_config;
+volatile LONG g_reloadRequested = 0;  // set by the settings window thread
+
+// Frame tick (game thread): the only place a requested reload writes g_config.
+void ApplyPendingConfigReload()
+{
+    if (InterlockedExchange(&g_reloadRequested, 0) != 0)
+    {
+        ReloadConfig();
+    }
+}
 
 std::string GetIniPath()
 {
@@ -38,7 +49,29 @@ std::string Describe(const LootConfig& c)
 }
 } // namespace
 
+LootConfig ReadConfigFile()
+{
+    const std::string path = GetIniPath();
+    std::ifstream file(path.c_str());
+    if (file.is_open())
+    {
+        return ParseLootConfig(file);
+    }
+    return LootConfig();
+}
+
+void RequestConfigReload()
+{
+    InterlockedExchange(&g_reloadRequested, 1);
+}
+
 void LoadConfig()
+{
+    ReloadConfig();
+    RegisterTick(&ApplyPendingConfigReload);
+}
+
+void ReloadConfig()
 {
     const std::string path = GetIniPath();
     std::ifstream file(path.c_str());

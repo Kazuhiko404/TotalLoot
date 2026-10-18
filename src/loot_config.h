@@ -37,6 +37,15 @@ LootConfig ParseLootConfig(std::istream& in);
 // result. Call once from startPlugin.
 void LoadConfig();
 
+// Re-reads TotalLoot.ini into the active config. Game thread only; other
+// threads call RequestConfigReload and the reload runs on the next frame tick.
+void ReloadConfig();
+void RequestConfigReload();
+
+// Parses TotalLoot.ini into a fresh value without touching the active config
+// (safe from any thread; the settings window loads its controls from it).
+LootConfig ReadConfigFile();
+
 // The active config (defaults until LoadConfig runs).
 const LootConfig& Config();
 } // namespace totalloot
