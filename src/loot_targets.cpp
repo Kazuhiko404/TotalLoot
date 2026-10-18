@@ -1,4 +1,5 @@
 #include "loot_targets.h"
+#include "loot_filter.h"
 #include "loot_inventory.h"
 #include "target_character.h"
 
@@ -215,7 +216,7 @@ int CollectBodiesInRadius(const Ogre::Vector3& origin, float radius, Character* 
         if (c == NULL || c == looter) continue;
         if (SafeIsPlayerOwned(c)) continue;
         if (!SafeIsLootableCharacter(c)) continue;
-        if (!HasAnyLootableItems(c)) continue;
+        if (!HasWantedLoot(c)) continue;
 
         Ogre::Vector3 pos;
         if (!SafeGetPosition(c, &pos)) continue;

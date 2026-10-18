@@ -65,7 +65,7 @@ static BetterLootingRules g_betterLootingRules =
     true,
     true,
     true,
-    true,    true,
+    true,    false,
     true,
     45,
     true

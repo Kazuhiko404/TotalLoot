@@ -65,6 +65,7 @@ __declspec(dllexport) void stopPlugin()
     ShutdownLootWalkSession();
     ShutdownPickPocketSession();
     ShutdownLootOverlay();
+    ShutdownBetterLooting();
 }
 
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID /*reserved*/)

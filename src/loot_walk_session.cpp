@@ -1,6 +1,7 @@
 #include "loot_walk_session.h"
 #include "loot_walk_rules.h"
 #include "loot_config.h"
+#include "loot_filter.h"
 #include "loot_targets.h"
 #include "loot_transfer.h"
 #include "loot_move.h"
@@ -143,7 +144,7 @@ void ReadTarget(RootObject* target, bool* valid, bool* hasItems)
     Character* body = CharacterFromRootObject(target);
     *valid = (body != NULL) ? SafeIsLootableCharacter(body)
                             : SafeIsLootableContainer(target);
-    *hasItems = *valid && HasAnyLootableItems(target);
+    *hasItems = *valid && HasWantedLoot(target);
 }
 
 bool PollAllyAttacked(Session* s, Character* looter, const Ogre::Vector3& pos, float now)

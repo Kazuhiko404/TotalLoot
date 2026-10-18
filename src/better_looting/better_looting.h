@@ -8,6 +8,9 @@ class Item;
 // Installs the copied BetterLooting hooks and UI thread. Returns true when started.
 bool InstallBetterLooting();
 
+// Stops the settings-window thread and destroys its window (waits up to 2 s).
+void ShutdownBetterLooting();
+
 // Applies BetterLooting's item rules (category, AllowStolen, MinValue,
 // MinValuePerKg) to `in`, taken from `sourceInventory` (and, optionally, the
 // source's worn backpack `extraInventory`, used only for the resource set).

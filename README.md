@@ -25,7 +25,7 @@ Los filtros se aplican a **Loot**, **Loot all** y al **Auto loot** de animales:
 - **BestItemsFirst**: transfiere primero los objetos de más valor.
 - **PreferBackpack**: prioriza la mochila del looteador cuando tiene sitio.
 - El **dinero nunca se filtra**.
-- Los valores por defecto no filtran nada (todas las categorías activas, `MinValue=0`, `MinValuePerKg=0.0`, `AllowStolen=1`), así que se saquea todo como antes. `BestItemsFirst=1` (por defecto) sí cambia el orden: si el inventario se llena, se quedan primero los ítems de más valor por kg.
+- Los valores por defecto no filtran nada (todas las categorías activas, `MinValue=0`, `MinValuePerKg=0.0`, `AllowStolen=1`), así que se saquea todo como antes. `BestItemsFirst=0` (por defecto) mantiene el orden original; con `1`, si el inventario se llena, se quedan primero los ítems de más valor por kg.
 
 ### Tecla Insert (looteo radial)
 - Con el inventario del jugador abierto, la tecla de `ActivationVirtualKey` (Insert por defecto) inicia un looteo radial instantáneo dentro de `LootRadius`, que también usa el almacenamiento propio del jugador como destino, como hacía BetterLooting.
@@ -74,7 +74,7 @@ Los filtros se aplican a **Loot**, **Loot all** y al **Auto loot** de animales:
 | `[Categories]` | `Narcotics` | `1` | Narcóticos. Mismo significado que `Weapons`. |
 | `[Categories]` | `SeveredLimbs` | `1` | Miembros amputados. Mismo significado que `Weapons`. |
 | `[Categories]` | `Other` | `1` | Otros. Mismo significado que `Weapons`. |
-| `[Behavior]` | `BestItemsFirst` | `1` | `1` = transfiere primero los ítems de más valor. |
+| `[Behavior]` | `BestItemsFirst` | `0` | `1` = transfiere primero los ítems de más valor. |
 | `[Behavior]` | `PreferBackpack` | `1` | `1` = prioriza la mochila del looteador; `0` = llena primero el inventario principal. |
 | `[Behavior]` | `ActivationVirtualKey` | `45` | Código de tecla virtual del atajo de looteo radial (`45` = Insert). |
 | `[UI]` | `Language` | `es` | Idioma de la ventana de ajustes: `es` o `en`. |

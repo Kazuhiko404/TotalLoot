@@ -2,6 +2,7 @@
 #include "better_looting/better_looting.h"
 #include "log.h"
 #include "loot_config.h"
+#include "loot_filter.h"
 #include "loot_inventory.h"
 #include "loot_money.h"
 #include "loot_stacking.h"
@@ -59,45 +60,6 @@ void ApplyStolenFlagPolicy(Item* item, Character* victim, RootObject* target, bo
             TL_TRY { item->notifyTheftFrom(target); } TL_CATCH { }
         }
     }
-}
-
-// SEH boundary around BetterLooting's rule evaluation (no objects with
-// destructors may live in a __try function, hence the separate wrapper).
-bool RunBetterLootingRules(Inventory* sourceInv, Inventory* sourceBpInv,
-                           const std::vector<Item*>& in, std::vector<Item*>& out)
-{
-    TL_TRY { return BetterLootingSelectLootItems(sourceInv, sourceBpInv, in, out); }
-    TL_CATCH { return false; }
-}
-
-// Narrows `items` to what BetterLooting's rules accept, best-first when that
-// option is on. Money is never filtered: it is always credited. Skipped items
-// stay in the source. On a fault the list is left unfiltered.
-void ApplyBetterLootingRules(Inventory* sourceInv, Inventory* sourceBpInv,
-                             std::vector<Item*>& items)
-{
-    std::vector<Item*> money;
-    std::vector<Item*> others;
-    for (size_t i = 0; i < items.size(); ++i)
-    {
-        if (items[i] == NULL) continue;
-        if (IsMoneyItem(items[i])) money.push_back(items[i]);
-        else others.push_back(items[i]);
-    }
-
-    std::vector<Item*> accepted;
-    if (!RunBetterLootingRules(sourceInv, sourceBpInv, others, accepted))
-    {
-        LogError("BetterLooting rules failed; transferring without filtering");
-        return;
-    }
-
-    LogInfo("BetterLooting rules kept " + IntToStr(static_cast<long long>(accepted.size())) +
-            " of " + IntToStr(static_cast<long long>(others.size())) + " items (+" +
-            IntToStr(static_cast<long long>(money.size())) + " money).");
-
-    money.insert(money.end(), accepted.begin(), accepted.end());
-    items.swap(money);
 }
 
 int TransferCollectedItems(Character* looter, Inventory* looterInv, Inventory* looterBpInv,
@@ -243,32 +205,23 @@ int TransferAllLoot(Character* looter, RootObject* source, bool* outSourceHasIte
     Inventory* victimInv = SafeGetInventory(source);
     if (victimInv == NULL) return 0;
 
-    // Snapshot every item first so we never mutate the engine collection while
-    // iterating it; a worn backpack's contents are collected too.
     std::vector<Item*> items;
-    if (!CollectLootableItems(victimInv, items))
+    if (!CollectWantedLoot(source, items))
     {
         LogError("Exception collecting items to transfer from target");
         return 0;
     }
-    if (victim != NULL)
-    {
-        CollectLootableItems(SafeGetBackpackInventory(victim), items);
-    }
-    if (items.empty()) return 0;
-
-    ApplyBetterLootingRules(victimInv, victim != NULL ? SafeGetBackpackInventory(victim) : NULL,
-                            items);
     // A body whose items were all filtered out is visited, not "looter full":
     // report no items left so walking Loot all / Loot area do not count it
     // toward the consecutive-empty-bodies stop.
     if (items.empty()) return 0;
+    LogInfo("Loot filters kept " + IntToStr(static_cast<long long>(items.size())) + " items.");
 
     const int moved = TransferCollectedItems(looter, looterInv, looterBpInv, victim, victimInv,
                                              items, source);
     if (outSourceHasItemsLeft != NULL)
     {
-        *outSourceHasItemsLeft = HasAnyLootableItems(source);
+        *outSourceHasItemsLeft = HasWantedLoot(source);
     }
     return moved;
 }

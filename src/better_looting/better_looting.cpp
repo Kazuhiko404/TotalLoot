@@ -4124,7 +4124,7 @@ static bool LoadBetterLootingRules()
         GetPrivateProfileIntA(
             "Behavior",
             "BestItemsFirst",
-            1,
+            0,
             configPath.c_str()
         ) != 0;
 
@@ -10480,7 +10480,7 @@ static void BetterLootingBspApplyDefaults()
     g_betterLootingRules.lootSeveredLimbs = true;
     g_betterLootingRules.lootOther = true;
 
-    g_betterLootingRules.bestItemsFirst = true;
+    g_betterLootingRules.bestItemsFirst = false;
     g_betterLootingRules.preferBackpack = true;
     g_betterLootingRules.activationVirtualKey = VK_INSERT;
 
@@ -14345,6 +14345,11 @@ static void ToggleBetterLootingBspWindow()
 }
 
 
+// TotalLoot: lets stopPlugin end the UI thread (the original loops forever).
+static volatile LONG g_blBspUiStopRequested = 0;
+static HANDLE g_blBspUiThread = NULL;
+
+
 static DWORD WINAPI BetterLootingBspUiThread(
     LPVOID
 )
@@ -14358,7 +14363,13 @@ static DWORD WINAPI BetterLootingBspUiThread(
         false;
 
 
-    while (true)
+    while (
+        InterlockedCompareExchange(
+            &g_blBspUiStopRequested,
+            0,
+            0
+        ) == 0
+    )
     {
         MSG msg;
 
@@ -14438,7 +14449,56 @@ static DWORD WINAPI BetterLootingBspUiThread(
     }
 
 
+    // The window belongs to this thread, so it is destroyed here.
+    if (g_blBspWindow)
+    {
+        if (
+            IsWindowVisible(
+                g_blBspWindow
+            )
+        )
+        {
+            BetterLootingBspEndMenuCursorSession();
+        }
+
+        DestroyWindow(
+            g_blBspWindow
+        );
+
+        g_blBspWindow =
+            NULL;
+    }
+
+
+    ErrorLog(
+        "BetterLooting: BSP_UI input thread stopped"
+    );
+
     return 0;
+}
+
+
+void ShutdownBetterLooting()
+{
+    InterlockedExchange(
+        &g_blBspUiStopRequested,
+        1
+    );
+
+    if (g_blBspUiThread)
+    {
+        WaitForSingleObject(
+            g_blBspUiThread,
+            2000
+        );
+
+        CloseHandle(
+            g_blBspUiThread
+        );
+
+        g_blBspUiThread =
+            NULL;
+    }
 }
 
 bool InstallBetterLooting()
@@ -14529,9 +14589,9 @@ bool InstallBetterLooting()
 
     if (betterLootingBspUiThreadHandle)
     {
-        CloseHandle(
-            betterLootingBspUiThreadHandle
-        );
+        // Kept (not closed) so ShutdownBetterLooting can wait for the thread.
+        g_blBspUiThread =
+            betterLootingBspUiThreadHandle;
 
         ErrorLog(
             "BetterLooting: BSP_UI thread created"
